@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renart - Product List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @font-face {
+            font-family: 'Avenir-Book';
+            src: url('fonts/avenir/Avenir-Book.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Montserrat-Regular';
+            src: url('fonts/montserat/Montserrat-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Montserrat-Medium';
+            src: url('fonts/montserat/Montserrat-Medium.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        .avenir-book { font-family: 'Avenir-Book', sans-serif; }
+        .montserrat-regular { font-family: 'Montserrat-Regular', sans-serif; }
+        .montserrat-medium { font-family: 'Montserrat-Medium', sans-serif; }
+
+        .carousel-container {
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #ccc transparent;
+        }
+
+        .carousel-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .carousel-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .carousel-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .carousel-container::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 2px;
+        }
+
+        .star {
+            width: 12px;
+            height: 12px;
+            color: #fbbf24;
+        }
+
+        .star.filled {
+            fill: currentColor;
+        }
+
+        .star.empty {
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1;
+        }
+
+        .color-option {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #374151;
+            border-width: 2px;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            min-width: 200px;
+            padding: 8px 0;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f9fafb;
+        }
+
+        .color-circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+<div class="container mx-auto px-4 py-8">
+    <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 avenir-book">Product List</h1>
+    </div>
+
+    <div class="relative">
+        <button
+                id="prevBtn"
+                class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+        >
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+
+        <button
+                id="nextBtn"
+                class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+        >
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+
+        <div class="carousel-container mx-12">
+            <div id="productCarousel" class="flex gap-6 pb-4" style="width: max-content;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentColorFilter = 'yellow';
+    let currentProducts = [];
+
+    async function init() {
+        try {
+            const response = await fetch('/api/products');
+            currentProducts = await response.json();
+            renderProducts();
+            updateScrollProgress();
+        } catch (error) {
+            console.error('Error loading products:', error);
+        }
+    }
+
+    function renderProducts() {
+        const carousel = document.getElementById('productCarousel');
+        carousel.innerHTML = currentProducts.map(product => createProductCard(product)).join('');
+
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                const color = this.getAttribute('data-color');
+                selectColor(productId, color);
+            });
+        });
+    }
+
+    function createProductCard(product) {
+        const rating = Math.round(product.popularityScore * 5);
+        const fullStars = Math.floor(rating);
+        const emptyStars = 5 - fullStars;
+
+        return `
+                <div class="bg-transparent rounded-lg overflow-hidden" style="width: 280px; min-width: 280px;">
+                    <div class="aspect-square bg-gray-100 relative">
+                        <img
+                            src="${product.images[currentColorFilter].url}"
+                            alt="Product ${product.id}"
+                            class="w-full h-full object-cover"
+                            id="product-image-${product.id}"
+                        />
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 avenir-book">${product.name}</h3>
+                        <p class="text-lg font-bold text-gray-900 mb-3 montserrat-medium">${product.price.toFixed(2)} USD</p>
+
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="flex gap-1">
+                                ${Array(3).fill().map((_, i) => `
+                                    <div
+                                        class="color-option ${i === 0 ? 'selected' : ''}"
+                                        style="background-color: ${Object.values(product.images)[i].color};"
+                                        data-product-id="${product.id}"
+                                        data-color="${Object.keys(product.images)[i]}"
+                                    ></div>
+                                `).join('')}
+                            </div>
+                            <span class="text-sm text-gray-600 avenir-book">
+                                ${currentColorFilter === 'yellow' ? 'Yellow Gold' :
+            currentColorFilter === 'white' ? 'White Gold' : 'Rose Gold'}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                             <div class="star-rating">
+                                ${Array(fullStars).fill().map(() => `
+                                    <svg class="star filled" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                `).join('')}
+                                ${Array(emptyStars).fill().map(() => `
+                                    <svg class="star empty" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                `).join('')}
+                            </div>
+                            <span class="text-sm text-gray-600 avenir-book">${rating}/5</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+    }
+
+    function selectColor(productId, color) {
+        document.querySelectorAll(`[data-product-id="${productId}"]`).forEach(option => {
+            option.classList.remove('selected');
+        });
+        document.querySelector(`[data-product-id="${productId}"][data-color="${color}"]`).classList.add('selected');
+
+        const product = currentProducts.find(p => p.id == productId);
+        if (product && product.images[color]) {
+            document.getElementById(`product-image-${productId}`).src = product.images[color].url;
+        }
+    }
+
+    function updateScrollProgress() {
+        const carousel = document.querySelector('.carousel-container');
+        const progress = document.getElementById('scrollProgress');
+
+        carousel.addEventListener('scroll', () => {
+            const scrollPercentage = (carousel.scrollLeft / (carousel.scrollWidth - carousel.clientWidth)) * 100;
+            progress.style.width = `${Math.min(scrollPercentage, 100)}%`;
+        });
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        const carousel = document.querySelector('.carousel-container');
+        carousel.scrollBy({ left: -300, behavior: 'smooth' });
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        const carousel = document.querySelector('.carousel-container');
+        carousel.scrollBy({ left: 300, behavior: 'smooth' });
+    });
+
+    init();
+</script>
+</body>
+</html>
