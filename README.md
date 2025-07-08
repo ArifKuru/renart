@@ -1,7 +1,7 @@
 # Renart API – Case Study
 
-Bu proje, [Web sitesi linki](https://arifkuru.com/renart) Renart mücevher koleksiyonu için geliştirilmiş bir RESTful API'dir. API, ürün verilerini sunar ve her bir ürün için dinamik fiyatlandırma, ağırlık ve görsel varyasyon bilgilerini içerir.
-
+Bu proje, [Web sitesi linki](https://arifkuru.com/renart) Renart Case Study için geliştirdiğim API ve frontend ile verileri MySQL veritabanına kaydettim ve çektim. Ürün görsellerine color bilgisi ekleyerek, ileride farklı renkler için yeni resimler eklendiğinde frontend tarafında herhangi bir değişiklik yapmadan dinamik şekilde çalışacak esnek bir yapı oluşturdum ve kendi websitem altında deploy ettim.
+API tarafında PHP, stilleme için ise Tailwind CSS kullandım.
 ## Database Scheme
 
 ![Database Scheme](https://github.com/user-attachments/assets/31147f47-0ac7-4238-8f41-40ed8a441c17)
